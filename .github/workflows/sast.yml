@@ -21,6 +21,21 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+      - name: Wait for SonarCloud background task to complete
+        run: |
+          echo "Polling SonarCloud for analysis completion..."
+          for i in $(seq 1 24); do
+            STATUS=$(curl -s -u "${{ secrets.SONAR_TOKEN }}:" \
+              "https://sonarcloud.io/api/ce/activity?component=ryan-joyce-granite_sonarqube-semgrep-trial&ps=1" \
+              | python3 -c "import sys,json; tasks=json.load(sys.stdin).get('tasks',[]); print(tasks[0]['status'] if tasks else 'PENDING')")
+            echo "Attempt $i — task status: $STATUS"
+            if [ "$STATUS" = "SUCCESS" ] || [ "$STATUS" = "FAILED" ] || [ "$STATUS" = "CANCELLED" ]; then
+              echo "Analysis complete: $STATUS"
+              break
+            fi
+            sleep 10
+          done
+
       - name: Export SonarCloud issues
         run: |
           curl -s \
