@@ -142,22 +142,61 @@ semgrep:
 
 ---
 
-## What Each Tool Catches
+## What Each Tool Catches (verified against bad_code.py trial run)
 
-| Issue | SonarCloud | Semgrep |
-|---|---|---|
-| SQL injection | Yes | Yes |
-| Command injection | Yes | Yes |
-| Hardcoded secrets | Yes | Yes (p/secrets) |
-| Insecure deserialization (pickle) | Yes | Yes |
-| Weak hashing (MD5 passwords) | Yes | Yes |
-| Path traversal | Yes | Yes |
-| Dead code / unused variables | Yes | No |
-| Duplicate code blocks | Yes | No |
-| Code smells / complexity | Yes | No |
-| OWASP Top 10 | Partial | Yes (p/owasp-top-ten) |
+Coverage matrix based on actual scan output — not marketing claims.
 
-SonarCloud is stronger on code quality and smells. Semgrep is stronger on targeted security rules and is more customisable. They complement each other well — use both.
+| Issue | CWE | Line | SonarCloud | Semgrep | Notes |
+|---|---|---|---|---|---|
+| Hardcoded password (`DB_PASSWORD`) | CWE-798 | 8 | MAJOR | — | Semgrep p/secrets missed it |
+| Hardcoded API key (`sk-live-...`) | CWE-798 | 9 | BLOCKER | — | Semgrep p/secrets missed it |
+| Hardcoded GitHub token (`ghp_...`) | CWE-798 | 10 | — | — | **Neither tool caught this** |
+| SQL injection (`get_user`) | CWE-89 | 16 | — | — | **Neither tool caught this** |
+| SQL injection (`process_order`) | CWE-89 | 50 | — | — | **Neither tool caught this** |
+| SQL injection (`process_invoice`) | CWE-89 | 60 | — | — | **Neither tool caught this** |
+| Command injection (`os.system`) | CWE-78 | 22 | — | — | **Neither tool caught this** |
+| Command injection (`subprocess shell=True`) | CWE-78 | 25 | — | MEDIUM | Semgrep caught subprocess, not os.system |
+| Insecure deserialization (pickle) | CWE-502 | 29 | — | HIGH | Semgrep only |
+| Weak MD5 hashing | CWE-327 | 33 | CRITICAL | HIGH | Both caught it |
+| Unused variable `unused_var` | — | 37 | MINOR | — | SonarCloud only |
+| Unused variable `another_unused` | — | 38 | MINOR | — | SonarCloud only |
+| Unused variable `result` | — | 42 | MINOR | — | SonarCloud only |
+| Duplicate code blocks | — | 14/48/58 | CRITICAL | — | SonarCloud only |
+| Broad `except:` swallowing errors | — | 71 | CRITICAL | — | SonarCloud only |
+| Hardcoded IP address | — | 76 | MINOR | — | SonarCloud only |
+| HTTP instead of HTTPS | — | 78 | MINOR ×2 | — | SonarCloud only |
+| Path traversal | CWE-22 | 83 | — | — | **Neither tool caught this** |
+| Infinite recursion (no base case) | — | 88 | BLOCKER | — | SonarCloud only |
+| Empty function (`validate_input`) | — | 98 | — | — | Neither caught it |
+| Magic numbers | — | 103 | — | — | Neither caught it |
+
+**Total: SonarCloud found 12, Semgrep found 4. Combined unique coverage: 15/21 issues.**
+
+### Gaps — neither tool caught
+- `ghp_` GitHub token on line 10
+- All 3 SQL injection instances (string concatenation pattern)
+- `os.system()` command injection (only subprocess variant caught)
+- Path traversal (string concatenation to build file path)
+
+### Why the gaps matter
+SQL injection via string concatenation is one of the most common real-world vulnerabilities and both tools missed it in this Python/SQLite pattern. In a real project, add `bandit` (Python-specific SAST) as a third tool — it catches SQLi, os.system injection, and path traversal that SonarCloud and Semgrep miss here.
+
+### Adding Bandit to the workflow
+```yaml
+- name: Run Bandit
+  run: |
+    pip install bandit
+    bandit -r . -f sarif -o bandit.sarif || true
+
+- name: Upload Bandit SARIF
+  uses: github/codeql-action/upload-sarif@v3
+  if: always()
+  with:
+    sarif_file: bandit.sarif
+    category: bandit
+```
+
+SonarCloud is stronger on code quality and smells. Semgrep is stronger on targeted security rules and is more customisable. For Python projects specifically, add Bandit — the three together give near-complete coverage.
 
 ---
 
