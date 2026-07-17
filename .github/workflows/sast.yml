@@ -51,7 +51,8 @@ jobs:
       - name: Run Semgrep
         run: |
           semgrep scan \
-            --config=p/python \
+            --config=p/php \
+            --config=p/wordpress \
             --config=p/security-audit \
             --config=p/owasp-top-ten \
             --config=p/secrets \
