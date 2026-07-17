@@ -21,6 +21,21 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+      - name: Export SonarCloud issues
+        run: |
+          curl -s \
+            -u "${{ secrets.SONAR_TOKEN }}:" \
+            "https://sonarcloud.io/api/issues/search?projectKeys=ryan-joyce-granite_sonarqube-semgrep-trial&resolved=false&ps=500" \
+            -o sonarcloud-issues.json
+          echo "Found $(cat sonarcloud-issues.json | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d["total"])') issues"
+
+      - name: Save SonarCloud issues as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sonarcloud-issues
+          path: sonarcloud-issues.json
+
   semgrep:
     name: Semgrep Scan
     runs-on: ubuntu-latest
