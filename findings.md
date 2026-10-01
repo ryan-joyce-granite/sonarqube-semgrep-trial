@@ -287,3 +287,15 @@ Paste either file into Claude with: *"Here are the findings from our SAST scan. 
 | Node.js | `p/javascript` `p/nodejs` `p/security-audit` `p/owasp-top-ten` `p/secrets` |
 | TypeScript | `p/typescript` `p/nodejs` `p/security-audit` `p/owasp-top-ten` `p/secrets` |
 | Python | `p/python` `p/security-audit` `p/owasp-top-ten` `p/secrets` |
+
+---
+
+## GitHub CodeQL — Comparison (in progress)
+
+CodeQL enabled on this repo. Pushing to trigger a scan against `bad-plugin.php` to compare coverage against SonarCloud (39 findings) and Semgrep (10 findings).
+
+Expected CodeQL strengths over Semgrep: deeper data-flow analysis, fewer false positives on SQLi/XSS/path traversal.
+Expected CodeQL overlap with SonarCloud: most of the same security classes (SQLi, XSS, injection, path traversal).
+Expected gaps (same as the others): CSRF, privilege escalation, unauthenticated AJAX — WordPress-semantic issues no SAST tool handles well.
+
+*Results to be added once the Actions run completes.*
